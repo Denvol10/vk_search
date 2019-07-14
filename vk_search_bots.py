@@ -63,9 +63,9 @@ def save_photo_data(vk_session):
         try:
             for photo in photos_info:
                 photo_exists = (VkPhoto.query.filter(VkPhoto.photo_id == photo['id']).first())
-                print(photo_exists)
                 if not photo_exists:
-                    photography = VkPhoto(page_id = VkPage.query.filter(VkPage.page_id == man['id']).first(), photo_id = photo['id'], photo_date = photo['date'])
+                    page_id = VkPage.query.filter(VkPage.page_id == man['id']).first()
+                    photography = VkPhoto(page_id = page_id.id, photo_id = photo['id'], photo_date = photo['date'])
                     model.db_session.add(photography)
                     model.db_session.commit()
         except (IndexError, TypeError):
