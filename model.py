@@ -1,5 +1,6 @@
 import os
 
+
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
@@ -26,6 +27,7 @@ class VkPhoto(Base):
     __tablename__ = 'Photos'
     id = Column(Integer, primary_key=True)
     page_id = Column(String, ForeignKey(VkPage.id))
+    photo_id = Column(String)
     photo_date = Column(Integer)
 
     def __str__(self):

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import vk_api
 import config
-
+import model
+from model import VkPage, VkPhoto
 
 # Двухфакторная аутентификация
 def auth_handler():
@@ -10,6 +11,7 @@ def auth_handler():
 
     return key, remember_device
 
+# Создание сессии в VK
 def get_session():
     login, password = config.LOGIN, config.PASSWORD
     vk_session = vk_api.VkApi(
@@ -25,6 +27,7 @@ def get_session():
         return
     return vk_session
 
+# Получение информации о вк страницах, которые находятся в списке друзей
 def get_friends_ids(vk_session):
     tools = vk_api.VkTools(vk_session)
     tmp_peop = tools.get_all(method='friends.get', max_count=1, values = {'fields' : 'nickname, domain, sex, bdate, city, country,' 
@@ -33,6 +36,7 @@ def get_friends_ids(vk_session):
                                                                         'can_write_private_message, can_see_all_posts, can_post, universities'})
     return tmp_peop.get('items')
 
+# Получение информации о фотографиях находящихся на стене страницы
 def get_photos(owner_id, vk_session):
     tools = vk_api.VkTools(vk_session)
     try:
@@ -41,21 +45,39 @@ def get_photos(owner_id, vk_session):
         return
     return info_photo.get('items')
 
-def main():
-    vk_session = get_session()
-    dict_photo = {}
+# Функция добавления VK страниц в базу данных
+def save_vk_page(vk_session):
+    for man in get_friends_ids(vk_session):
+        page_exists = (VkPage.query.filter(VkPage.page_id == man['id']).first())
+        if not page_exists and man['first_name'] != 'DELETED':
+            page = VkPage(page_id = man['id'], pagename = f"{man['first_name']} {man['last_name']}")
+            model.db_session.add(page)
+            model.db_session.commit()
+    return 'vk_pages saved'
+
+# Функция сохранения информации в базу данных о фотографиях, расположенных на стене страницы VK
+def save_photo_data(vk_session):
     for man in get_friends_ids(vk_session):
         print(man['id'], man['last_name'])
         photos_info = get_photos(owner_id=man['id'], vk_session=vk_session)
         try:
-            list_date_photo = []
             for photo in photos_info:
-                dict_photo[man['last_name']] = photo['date']
-                list_date_photo.append(photo['date'])
-            dict_photo[man['last_name']] = list_date_photo
+                photo_exists = (VkPhoto.query.filter(VkPhoto.photo_id == photo['id']).first())
+                if not photo_exists:
+                    photography = VkPhoto(photo_id = photo['id'], photo_date = photo['date'])
+                    model.db_session.add(photography)
+                    model.db_session.commit()
         except (IndexError, TypeError):
             continue
-    print(dict_photo)
+    return 'photo_info saved'
+
+
+def main():
+    vk_session = get_session()
+    # сохранение страниц VK в базу данных
+    save_vk_page(vk_session)
+    # сохранение информации о фотографиях страниц VK в базу данных
+    save_photo_data(vk_session)
 
 if __name__ == '__main__':
     main()
