@@ -33,9 +33,18 @@ class VkPhoto(Base):
     def __str__(self):
         return self.photo_date
 
+class VkWall(Base):
+    __tablename__ = 'VkWalls'
+    id = Column(Integer, primary_key=True)
+    page_id = Column(String, ForeignKey(VkPage.id))
+    wall_id = Column(String)
+    posts_count = Column(Integer)
+    likes_count = Column(Integer)
+    reposts_count = Column(Integer)
+
+    def __str__(self):
+        return self.page_id
+
+
 if __name__ == '__main__':
     Base.metadata.create_all(bind=engine)
-
-
-
-

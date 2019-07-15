@@ -2,7 +2,7 @@
 import vk_api
 import config
 import model
-from model import VkPage, VkPhoto
+from model import VkPage, VkPhoto, VkWall
 
 # Двухфакторная аутентификация
 def auth_handler():
@@ -45,6 +45,15 @@ def get_photos(owner_id, vk_session):
         return
     return info_photo.get('items')
 
+# Получение информации о записях на стене
+def get_walls(owner_id, vk_session):
+    tools = vk_api.VkTools(vk_session)
+    try:
+        wall_info = tools.get_all(method='wall.get', max_count=100, values = {'owner_id' : owner_id, 'count' : 20, 'filter' : 'owner'})
+    except Exception:
+        return
+    return wall_info
+
 # Функция добавления VK страниц в базу данных
 def save_vk_page(vk_session):
     for man in get_friends_ids(vk_session):
@@ -57,6 +66,7 @@ def save_vk_page(vk_session):
 
 # Функция сохранения информации в базу данных о фотографиях, расположенных на стене страницы VK
 def save_photo_data(vk_session):
+    print('Сохранение информации о фотографиях')
     for man in get_friends_ids(vk_session):
         print(man['id'], man['last_name'])
         photos_info = get_photos(owner_id=man['id'], vk_session=vk_session)
@@ -72,13 +82,44 @@ def save_photo_data(vk_session):
             continue
     return 'photo_info saved'
 
+# Функция сохранения информации в базу данных о стене пользователя
+def save_wall_data(vk_session):
+    print('Сохранение информации о стене пользователя')
+    for man in get_friends_ids(vk_session):
+        print(man['id'], man['last_name'])
+        wall_info = get_walls(owner_id=man['id'], vk_session=vk_session)
+        wall_exists = VkWall.query.filter(VkWall.wall_id == man['id']).first()
+        if not wall_exists:
+            page_id = VkPage.query.filter(VkPage.page_id == man['id']).first().id
+            try:
+                wall_id = wall_info.get('items')[0]['owner_id']
+            except (IndexError, TypeError):
+                continue
+            posts_count = wall_info.get('count') # количество постов
+            print(posts_count, wall_id)
+            try:
+                likes_count = 0
+                reposts_count = 0
+                for wall in wall_info.get('items'):
+                    likes_count += wall['likes'].get('count')
+                    reposts_count += wall['reposts'].get('count')
+                print(likes_count, reposts_count)
+            except (IndexError, TypeError):
+                continue
+        wall = VkWall(page_id=page_id, wall_id=wall_id, posts_count=posts_count, likes_count=likes_count, reposts_count=reposts_count)
+        model.db_session.add(wall)
+        model.db_session.commit()
+    return 'wall info saved'
+
 
 def main():
     vk_session = get_session()
     # сохранение страниц VK в базу данных
     save_vk_page(vk_session)
     # сохранение информации о фотографиях страниц VK в базу данных
-    save_photo_data(vk_session)
+    #save_photo_data(vk_session)
+    # сохранение информации о стенах
+    save_wall_data(vk_session)
 
 if __name__ == '__main__':
     main()
