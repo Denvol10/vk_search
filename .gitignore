@@ -6,3 +6,4 @@ config.py
 *.json
 *.db
 test.py
+.ipynb_checkpoints/
