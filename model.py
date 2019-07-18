@@ -1,7 +1,7 @@
 import os
 
 
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, ForeignKey
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -19,6 +19,8 @@ class VkPage(Base):
     id = Column(Integer, primary_key=True)
     page_id = Column(String, unique=True)
     pagename = Column(String)
+    friends_count = Column(Integer)
+    target = Column(Boolean)
 
     def __str__(self):
         return self.page_id
@@ -28,7 +30,7 @@ class VkPhoto(Base):
     id = Column(Integer, primary_key=True)
     page_id = Column(String, ForeignKey(VkPage.id))
     photo_id = Column(String)
-    photo_date = Column(Integer)
+    count_photos = Column(Integer)
 
     def __str__(self):
         return self.photo_date
